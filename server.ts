@@ -4,6 +4,7 @@ import Database from 'better-sqlite3';
 const app = express();
 
 app.use(express.static('public'));
+app.use(express.json());
 
 const db = new Database("hittastic.db");
 
@@ -14,6 +15,26 @@ app.get('/artist/:artist', (req, res) => {
 	const results = stmt.all(req.params.artist);
 	res.json(results);
 });
+
+app.post('/buy/:id', (req, res) => {
+    try {
+        const songId = req.params.id;
+
+        db.prepare(`UPDATE wadsongs SET quantity = quantity - 1 WHERE id = ? AND quantity > 0`).run(songId);
+
+        const stmt = db.prepare(`INSERT INTO orders (song_id, quantity) VALUES (?, ?)`);
+
+        const info = stmt.run(songId, 1);
+
+        res.json({ orderId: info.lastInsertRowid });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: error });
+    }
+});
+
+
 
 app.listen(PORT, () => {
 	console.log(`Server running on port ${PORT}.`);
